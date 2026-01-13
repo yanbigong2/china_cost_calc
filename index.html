@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国城市生活成本 & 薪资购买力计算器</title>
+    <style>
+        :root {
+            --primary: #096dd9;
+            --active-bg: #e6f7ff;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --border-color: #e8e8e8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: #262626;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        h1 { text-align: center; color: #002766; margin-bottom: 20px; font-size: 24px; }
+        h2 { 
+            border-left: 5px solid var(--primary); 
+            padding-left: 12px; 
+            margin-top: 40px; 
+            font-size: 18px; 
+            background: #fafafa;
+            padding: 10px 12px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Controls Grid */
+        .controls-wrapper {
+            background: #f7f9fc;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .control-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 12px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .input-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .input-row label { font-size: 13px; color: #555; }
+        
+        .input-row input {
+            width: 110px;
+            padding: 6px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            text-align: right;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .input-row input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(9,109,217,0.1);
+        }
+
+        /* Salary Input Special Styling */
+        .salary-input-group {
+            border: 2px solid transparent;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+        .salary-input-group.active {
+            border-color: var(--primary);
+            background-color: var(--active-bg);
+        }
+        .salary-input-group label { font-weight: bold; color: #333; }
+        .salary-desc { font-size: 11px; color: #888; margin-top: 2px; display: block; }
+
+        .unit { font-size: 12px; color: #999; margin-left: 4px; width: 30px; }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            text-align: right;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #fafafa;
+            font-weight: 600;
+            color: #595959;
+            white-space: nowrap;
+        }
+
+        td:first-child, th:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background-color: #fff;
+            z-index: 2;
+            font-weight: bold;
+            border-right: 2px solid #f0f0f0;
+        }
+        th:first-child { background-color: #fafafa; }
+
+        tr:hover td { background-color: #f0f7ff; }
+        tr.base-row td { background-color: #fffbe6 !important; }
+
+        .money { font-family: "Menlo", monospace; }
+        .sub-val { font-size: 11px; color: #8c8c8c; display: block; }
+        .pos { color: #389e0d; font-weight: bold; }
+        .neg { color: #cf1322; font-weight: bold; }
+        
+        .highlight-cell { background: #f6ffed; color: #389e0d; font-weight: bold; }
+        
+        /* 响应式优化 */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 16px; }
+            h1 { font-size: 20px; }
+            .controls-wrapper {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+            .input-row input {
+                width: 100px;
+            }
+            table { font-size: 12px; }
+            th, td { padding: 8px 6px; }
+        }
+        
+        /* 加载提示 */
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #d9d9d9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 5px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏙️ 城市生活成本 & 薪资购买力计算器</h1>
+    
+    <div class="controls-wrapper">
+        <!-- 房租模块 -->
+        <div class="control-section">
+            <div class="section-title">🏠 居住成本 (上海基准)</div>
+            <div class="input-row">
+                <label>每平米租金</label>
+                <div>
+                    <input type="number" id="inRentPrice" value="110" oninput="recalc()">
+                    <span class="unit">元/㎡</span>
+                </div>
+            </div>
+            <div class="input-row">
+                <label>租房面积</label>
+                <div>
+                    <input type="number" id="inArea" value="50" style="background:#fff7e6; border-color:#ffd591;" oninput="recalc()">
+                    <span class="unit">㎡</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 餐饮模块 -->
+        <div class="control-section">
+            <div class="section-title">🥘 饮食与其他 (上海基准)</div>
+            <div class="input-row">
+                <label>买菜做饭/月</label>
+                <div><input type="number" id="inGrocery" value="1500" oninput="recalc()"><span class="unit">元</span></div>
+            </div>
+            <div class="input-row">
+                <label>外食聚餐/月</label>
+                <div><input type="number" id="inDining" value="2000" oninput="recalc()"><span class="unit">元</span></div>
+            </div>
+            <div class="input-row">
+                <label>交通+杂项/月</label>
+                <div><input type="number" id="inMisc" value="2000" oninput="recalc()"><span class="unit">元</span></div>
+            </div>
+        </div>
+
+        <!-- 收入模块 (核心修改) -->
+        <div class="control-section" style="border: 1px solid #91caff;">
+            <div class="section-title">💰 收入模式 (二选一)</div>
+            
+            <!-- 模式A: 锚定 -->
+            <div class="salary-input-group active" id="groupPegged" onclick="setMode('pegged')">
+                <div class="input-row">
+                    <label>模式A: 同岗位锚定</label>
+                    <div>
+                        <input type="number" id="inSalaryPegged" value="300000" step="10000" onfocus="setMode('pegged')" oninput="recalc()">
+                        <span class="unit">元</span>
+                    </div>
+                </div>
+                <span class="salary-desc">输入上海年薪，系统按城市系数自动折算各地薪资。</span>
+            </div>
+
+            <!-- 模式B: 同薪 -->
+            <div class="salary-input-group" id="groupFixed" onclick="setMode('fixed')">
+                <div class="input-row">
+                    <label>模式B: 相同年薪</label>
+                    <div>
+                        <input type="number" id="inSalaryFixed" placeholder="输入金额" step="10000" onfocus="setMode('fixed')" oninput="recalc()">
+                        <span class="unit">元</span>
+                    </div>
+                </div>
+                <span class="salary-desc">假设远程工作或外派，所有城市拿一样的钱。</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 表一：成本明细 -->
+    <h2>📊 表一：生活成本构成 (月度)</h2>
+    <div class="table-container">
+        <table id="costTable">
+            <thead>
+                <tr>
+                    <th>城市</th>
+                    <th>房租<br><span class="sub-val">单价x面积</span></th>
+                    <th>餐饮<br><span class="sub-val">做饭+外食</span></th>
+                    <th>其他<br><span class="sub-val">交通+杂项</span></th>
+                    <th>月总支出</th>
+                    <th>年总支出</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 表二：收入与结余 -->
+    <h2>💵 表二：购买力与结余分析</h2>
+    <div class="table-container">
+        <table id="incomeTable">
+            <thead>
+                <tr>
+                    <th>城市</th>
+                    <th>当地平均年薪<br><span class="sub-val">社平参考值</span></th>
+                    <th style="background:#e6f7ff; border-bottom:2px solid #1890ff;">您的税前年薪<br><span class="sub-val" id="salaryColSub">当前模式</span></th>
+                    <th>平均薪资倍数<br><span class="sub-val">您是当地平均的几倍</span></th>
+                    <th>税后到手<br><span class="sub-val">扣除五险一金+个税</span></th>
+                    <th>年总支出<br><span class="sub-val">来自表一</span></th>
+                    <th>年结余<br><span class="sub-val">存下来的钱</span></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // 数据矩阵
+    // avgSalary: 估算的2024年当地社会平均年薪(税前，含社保公积金单位部分)
+    const cityData = [
+        { name: "上海", rentPrice: 1.00, grocery: 1.00, dining: 1.00, misc: 1.00, salaryRatio: 1.00, avgSalary: 165000 },
+        { name: "北京", rentPrice: 1.10, grocery: 0.98, dining: 0.95, misc: 1.00, salaryRatio: 1.02, avgSalary: 170000 },
+        { name: "深圳", rentPrice: 0.95, grocery: 1.05, dining: 1.00, misc: 1.00, salaryRatio: 0.98, avgSalary: 160000 },
+        { name: "杭州", rentPrice: 0.75, grocery: 1.00, dining: 0.95, misc: 0.95, salaryRatio: 0.90, avgSalary: 140000 },
+        { name: "苏州", rentPrice: 0.50, grocery: 0.95, dining: 0.85, misc: 0.90, salaryRatio: 0.78, avgSalary: 130000 },
+        { name: "昆山", rentPrice: 0.42, grocery: 0.98, dining: 0.80, misc: 0.85, salaryRatio: 0.70, avgSalary: 115000 },
+        { name: "南京", rentPrice: 0.55, grocery: 0.95, dining: 0.85, misc: 0.85, salaryRatio: 0.75, avgSalary: 125000 },
+        { name: "广州", rentPrice: 0.60, grocery: 1.00, dining: 0.85, misc: 0.90, salaryRatio: 0.85, avgSalary: 135000 },
+        { name: "成都", rentPrice: 0.40, grocery: 0.90, dining: 0.75, misc: 0.85, salaryRatio: 0.65, avgSalary: 105000 },
+        { name: "重庆", rentPrice: 0.35, grocery: 0.85, dining: 0.70, misc: 0.85, salaryRatio: 0.62, avgSalary: 100000 },
+        { name: "武汉", rentPrice: 0.45, grocery: 0.90, dining: 0.75, misc: 0.85, salaryRatio: 0.68, avgSalary: 110000 },
+        { name: "长沙", rentPrice: 0.30, grocery: 0.90, dining: 0.80, misc: 0.80, salaryRatio: 0.60, avgSalary: 105000 },
+        { name: "西安", rentPrice: 0.35, grocery: 0.85, dining: 0.70, misc: 0.80, salaryRatio: 0.60, avgSalary: 98000 },
+        { name: "沈阳", rentPrice: 0.25, grocery: 0.80, dining: 0.65, misc: 0.75, salaryRatio: 0.50, avgSalary: 90000 }
+    ];
+
+    let currentMode = 'pegged'; // 'pegged' or 'fixed'
+
+    function formatMoney(num) {
+        return num.toLocaleString('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 });
+    }
+
+    // 切换模式逻辑
+    function setMode(mode) {
+        currentMode = mode;
+        const groupPegged = document.getElementById('groupPegged');
+        const groupFixed = document.getElementById('groupFixed');
+        const inPegged = document.getElementById('inSalaryPegged');
+        const inFixed = document.getElementById('inSalaryFixed');
+
+        if (mode === 'pegged') {
+            groupPegged.classList.add('active');
+            groupFixed.classList.remove('active');
+            inFixed.value = ''; // 清空另一个
+            document.getElementById('salaryColSub').innerText = "基于上海基数折算";
+        } else {
+            groupFixed.classList.add('active');
+            groupPegged.classList.remove('active');
+            // 如果Fixed是空的，给个默认值方便演示
+            if(!inFixed.value) inFixed.value = inPegged.value || 300000; 
+            inPegged.value = ''; // 清空另一个
+            document.getElementById('salaryColSub').innerText = "全地域固定年薪";
+        }
+        recalc();
+    }
+
+    // 简易个税计算
+    function calcTaxedIncome(grossYearly) {
+        let socialBase = grossYearly;
+        if (socialBase > 432000) socialBase = 432000; // 封顶
+        const socialDeduction = socialBase * 0.175;
+        let taxable = grossYearly - socialDeduction - 60000;
+        if (taxable < 0) taxable = 0;
+
+        let tax = 0;
+        if (taxable <= 36000) tax = taxable * 0.03;
+        else if (taxable <= 144000) tax = taxable * 0.10 - 2520;
+        else if (taxable <= 300000) tax = taxable * 0.20 - 16920;
+        else if (taxable <= 420000) tax = taxable * 0.25 - 31920;
+        else if (taxable <= 660000) tax = taxable * 0.30 - 52920;
+        else tax = taxable * 0.45 - 181920;
+
+        return grossYearly - socialDeduction - tax;
+    }
+
+    function recalc() {
+        const area = parseFloat(document.getElementById('inArea').value) || 0;
+        const baseRent = parseFloat(document.getElementById('inRentPrice').value) || 0;
+        const baseGrocery = parseFloat(document.getElementById('inGrocery').value) || 0;
+        const baseDining = parseFloat(document.getElementById('inDining').value) || 0;
+        const baseMisc = parseFloat(document.getElementById('inMisc').value) || 0;
+
+        // 确定薪资基数
+        let salaryInput = 0;
+        if (currentMode === 'pegged') {
+            salaryInput = parseFloat(document.getElementById('inSalaryPegged').value) || 0;
+        } else {
+            salaryInput = parseFloat(document.getElementById('inSalaryFixed').value) || 0;
+        }
+
+        const costTbody = document.querySelector('#costTable tbody');
+        const incomeTbody = document.querySelector('#incomeTable tbody');
+        costTbody.innerHTML = '';
+        incomeTbody.innerHTML = '';
+
+        cityData.forEach(city => {
+            // --- 成本计算 ---
+            const cRent = (baseRent * city.rentPrice) * area;
+            const cFood = (baseGrocery * city.grocery) + (baseDining * city.dining);
+            const cMisc = baseMisc * city.misc;
+            const cTotalMonth = cRent + cFood + cMisc;
+            const cTotalYear = cTotalMonth * 12;
+
+            // 渲染表一
+            const trCost = document.createElement('tr');
+            if (city.name === '上海') trCost.className = 'base-row';
+            trCost.innerHTML = `
+                <td>${city.name}</td>
+                <td>${formatMoney(cRent)}</td>
+                <td>${formatMoney(cFood)}</td>
+                <td>${formatMoney(cMisc)}</td>
+                <td class="money" style="font-weight:bold">${formatMoney(cTotalMonth)}</td>
+                <td class="money">${formatMoney(cTotalYear)}</td>
+            `;
+            costTbody.appendChild(trCost);
+
+            // --- 收入计算 ---
+            let localGross = 0;
+            if (currentMode === 'pegged') {
+                localGross = salaryInput * city.salaryRatio;
+            } else {
+                localGross = salaryInput; // 固定薪资
+            }
+
+            const netIncome = calcTaxedIncome(localGross);
+            const savings = netIncome - cTotalYear;
+            const multiple = localGross / city.avgSalary;
+            
+            const savingsClass = savings >= 0 ? 'pos' : 'neg';
+
+            // 渲染表二
+            const trIncome = document.createElement('tr');
+            if (city.name === '上海') trIncome.className = 'base-row';
+            
+            trIncome.innerHTML = `
+                <td>${city.name}</td>
+                <td style="color:#888">${formatMoney(city.avgSalary)}</td>
+                <td class="money" style="font-weight:bold; color:#096dd9; background:#f0faff;">${formatMoney(localGross)}</td>
+                <td class="highlight-cell">${multiple.toFixed(1)}倍</td>
+                <td class="money">${formatMoney(netIncome)}</td>
+                <td class="money" style="color:#666">${formatMoney(cTotalYear)}</td>
+                <td class="money ${savingsClass}" style="font-size:14px;">${formatMoney(savings)}</td>
+            `;
+            incomeTbody.appendChild(trIncome);
+        });
+    }
+
+    // 初始化
+    recalc();
+</script>
+
+</body>
+</html>
